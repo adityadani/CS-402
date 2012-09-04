@@ -1,0 +1,177 @@
+/* Author: Aditya Dani
+   adityada@usc.edu
+*/
+
+
+#include <errno.h>
+#include "my402list.h"
+
+int  My402ListLength(My402List *aList)
+{
+	return (aList->num_members);
+}
+
+int  My402ListEmpty(My402List *aList)
+{
+	if(aList->num_members == 0) { //This test is sufficient to check empty list.
+		if (aList->anchor.next == aList->anchor) {
+			if(aList->anchor.prev == aList->anchor)
+				return 0;
+			else
+				return 1; //Failing in this test not possible.
+		}
+		else
+			return 1; //Failing in this test not possible.
+	}
+	else
+		return 1; // There are elements present in the list.
+}
+
+int  My402ListPrepend(My402List *aList, void *aObj)
+{
+	My402ListElem *anchorNext, *newElem;
+	
+	anchorNext = aList->anchor.next;
+	newElem = (My402ListElem *)malloc(sizeof(struct My402ListElem));
+	if (newElem == NULL) {
+		printf("Error in handling malloc(). Error no = %d",errno);
+		return 1; // returning FALSE
+	}
+	newElem->obj = aObj;
+	newElem->prev = aList->anchor;
+	newElem->next = anchorNext;
+	aList->anchor.next = newElem;
+	anchorNext.prev = newElem;
+	aList->num_members++;
+
+	return 0;
+}
+
+int  My402ListAppend(My402List *aList, void *aObj)
+{
+	My402ListElem *anchorPrev, *newElem;
+
+	anchorPrev = aList->anchor.prev;
+	newElem = (My402ListElem *)malloc(sizeof(struct My402ListElem));
+	if (newElem == NULL) {
+		printf("Error in handling malloc(). Error no = %d",errno);
+		return 1; // returning FALSE
+	}
+	newElem->obj = aObj;
+	newElem->prev = anchorPrev;
+	newElem->next = aList->anchor;
+	aList->anchor.prev = newElem;
+	anchorPrev.next = newElem;
+	aList->num_members++;
+
+	return 0;
+	
+}
+
+void My402ListUnlink(My402List *aList, My402ListElem *aElem)
+{
+	My402ListElem *elemNext, *elemPrev;
+
+	elemNext = aElem->next;
+	elemPrev = aElem->prev;
+	elemPrev->next = elemNext;
+	elemNext->prev = elemPrev;
+	aList->num_members--;
+	free(aElem);
+	
+}
+
+void My402ListUnlinkAll(My402List *aList)
+{
+	My402ListElem *elemPtr;
+
+	elemPtr = My402ListNext(aList,&(aList->anchor));
+	while(elemPtr != NULL) {
+		My402ListUnlink(elemPtr);
+		elemPtr = My402ListNext(aList,&(aList->anchor));
+	}
+}
+
+int  My402ListInsertAfter(My402List *aList, void *aObj, My402ListElem *aElem)
+{
+	My402ListElem *elemNext, *newElem;
+
+	elemNext = aElem->next;
+	
+	if (aElem == NULL)
+		My402ListAppend(aList, aObj);
+	else {
+		newElem = (My402ListElem *)malloc(sizeof(struct My402ListElem));
+		if (newElem == NULL) {
+			printf("Error in handling malloc(). Error no = %d",errno);
+			return 1; // returning FALSE
+		}
+		newElem->obj = aObj;
+		elemNext->prev = newElem;
+		aElem->next = newElem;
+		newElem->prev = aElem;
+		newElem->next = elemNext;
+		aList->num_members++;
+	}
+
+	return 0; // returning TRUE
+}
+
+int  My402ListInsertBefore(My402List *aList, void *aObj, My402ListElem *aElem)
+{
+	My402ListElem *elemPrev, *newElem;
+
+	elemNext = aElem->prev;
+	
+	if (aElem == NULL)
+		My402ListPrepend(aList, aObj);
+	else {
+		newElem = (My402ListElem *)malloc(sizeof(struct My402ListElem));
+		if (newElem == NULL) {
+			printf("Error in handling malloc(). Error no = %d",errno);
+			return 1; // returning FALSE
+		}
+		newElem->obj = aObj;
+		elemPrev->next = newElem;
+		aElem->prev = newElem;
+		newElem->next = aElem;
+		newElem->prev = elemNext;
+		aList->num_memebers++;
+	}
+
+	return 0; // returning TRUE
+	
+}
+
+My402ListElem *My402ListFirst(My402List *aList)
+{
+	return (aList->anchor.next);
+}
+
+My402ListElem *My402ListLast(My402List *aList)
+{
+	return (aList->anchor.prev);
+}
+
+My402ListElem *My402ListNext(My402List *aList , My402ListElem *aElem)
+{
+	
+}
+extern My402ListElem *My402ListPrev(My402List*, My402ListElem*);
+
+extern My402ListElem *My402ListFind(My402List*, void*);
+
+int My402ListInit(My402List *aList)
+{
+	aList->num_members=0;
+	if (aList->anchor != NULL) {
+		aList->anchor.next=aList->anchor;
+		aList->anchor.prev=aList->anchor;
+		return 0;
+	}
+	else
+		return 1;
+}
+
+
+
