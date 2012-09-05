@@ -1,7 +1,7 @@
 /*
  * Author:      William Chia-Wei Cheng (bill.cheng@acm.org)
  *
- * @(#)$Id: listtest.c,v 1.1 2012/08/24 05:27:12 william Exp $
+ * @(#)$Id: listtest.c,v 1.2 2012/09/04 12:38:28 william Exp $
  */
 
 #include <stdio.h>
@@ -254,7 +254,7 @@ void BubbleSortBackwardList(My402List *pList, int num_items)
     int i=0;
 
     if (My402ListLength(pList) != num_items) {
-        fprintf(stderr, "List length is not %1d in BubbleSortForwardList().\n", num_items);
+        fprintf(stderr, "List length is not %1d in BubbleSortBackwardList().\n", num_items);
         exit(1);
     }
     for (i=0; i < num_items; i++) {

@@ -156,11 +156,31 @@ My402ListElem *My402ListLast(My402List *aList)
 
 My402ListElem *My402ListNext(My402List *aList , My402ListElem *aElem)
 {
-	
+	if(aElem->next == &(aList->anchor))
+		return NULL;
+	else
+		return (aElem->next);
 }
-extern My402ListElem *My402ListPrev(My402List*, My402ListElem*);
+My402ListElem *My402ListPrev(My402List *aList, My402ListElem *aElem)
+{
+	if(aElem->prev == &(aList->anchor))
+		return NULL;
+	else
+		return (aElem->prev);
+}
 
-extern My402ListElem *My402ListFind(My402List*, void*);
+My402ListElem *My402ListFind(My402List *aList, void *aObj)
+{
+	My402ListElem *elemPtr;
+
+	elemPtr = &(aList->anchor);
+	while (elemPtr != NULL) {
+		if (elemPtr->obj == aObj)
+			return (elemPtr);
+		My402ListNext(aList,elemPtr);
+	}
+	return NULL;
+}
 
 int My402ListInit(My402List *aList)
 {
