@@ -305,7 +305,7 @@ void CompareTestList(My402List *pList1, My402List *pList2, int num_items)
 static
 void DoTest()
 {
-    int num_items=64;
+    int num_items=6;
     My402List list, list2;
 
     memset(&list, 0, sizeof(My402List));
