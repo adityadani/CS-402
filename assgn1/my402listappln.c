@@ -31,6 +31,13 @@ void convertTimeFormats(long long transTimeInt , char *transTime)
 			strncat(transTime,startPtr,strlen(startPtr));
 		else {
 			*spacePtr++=0;
+			// If the date is single digit then there is an extra space.
+			// Hence the spacePtr is advanced until all the spaces are consumed/
+			// This while loop is basically to handle these dates Apr 6 , or Apr 9 and not Apr 12
+			while((*spacePtr)==' ') {
+				spacePtr++;
+				strncat(transTime," ",1);
+			}
 			if (i != 3) {
 				strncat(transTime,startPtr,strlen(startPtr));
 				strncat(transTime,space,2);
@@ -130,17 +137,17 @@ void printObj(My402List *applnList)
 		PrintChar(24-strlen(applnObj->transDesc),' ');
 		printf(" |");
 		if(applnObj->transType == '+') {
-			printf(" %14.2d |",applnObj->transAmountCents / 100);
+			printf(" %14.2f |",(double)(applnObj->transAmountCents) / 100);
 			Balance += applnObj->transAmountCents;
 		}
 		else {
-			printf(" (%12.2d) |",applnObj->transAmountCents / 100);
+			printf(" (%12.2f) |",(double)(applnObj->transAmountCents) / 100);
 			Balance -= applnObj->transAmountCents;
 		}
 		if(Balance > 0)
-			printf(" %14.2d |\n",Balance / 100);
+			printf(" %14.2f |\n",(double)(Balance) / 100);
 		else
-			printf(" (%12.2d) |\n",Balance / 100);
+			printf(" (%12.2f) |\n",(double)(Balance) / 100);
 	}while((ptrElem = My402ListNext(applnList,ptrElem))!=NULL);
 	printPattern();
 }
@@ -177,17 +184,29 @@ int main(int argc, char **argv)
 	My402ApplnObj *applnObj;
 	My402List applnList;
 
+	
 	My402ListInit(&applnList);
-	if(argc==1)
-		fp=stdin;
-	else
-		fp=fopen(argv[1],"r");
-	
-	while(fgets(buf, sizeof(buf) ,fp)!=NULL) {
-		applnObj = createApplnObj(buf);
-		insertObj(&applnList,applnObj);
+	if (argc == 1) {
+		fprintf(stderr,"Invalid Command!!\n");
+		fprintf(stderr,"Usage: ./applnlist sort [tfile name]\n");
+		exit(1);
 	}
-	printObj(&applnList);
+	else{
+		if(strncmp(argv[1],"sort",4)!=0) {
+			fprintf(stderr,"Invalid Command!!\n");
+			fprintf(stderr,"Usage: ./applnlist sort [tfile name]\n");
+			exit(1);			
+		}
+		if(argc==2)
+			fp=stdin;
+		else
+			fp=fopen(argv[2],"r");
 	
+		while(fgets(buf, sizeof(buf) ,fp)!=NULL) {
+			applnObj = createApplnObj(buf);
+			insertObj(&applnList,applnObj);
+		}
+		printObj(&applnList);
+	}
 	return 1;
 }
