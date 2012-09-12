@@ -31,20 +31,22 @@ void convertTimeFormats(long long transTimeInt , char *transTime)
 			strncat(transTime,startPtr,strlen(startPtr));
 		else {
 			*spacePtr++=0;
-			// If the date is single digit then there is an extra space.
-			// Hence the spacePtr is advanced until all the spaces are consumed/
-			// This while loop is basically to handle these dates Apr 6 , or Apr 9 and not Apr 12
-			while((*spacePtr)==' ') {
-				spacePtr++;
-				strncat(transTime," ",1);
-			}
 			if (i != 3) {
 				strncat(transTime,startPtr,strlen(startPtr));
 				strncat(transTime,space,2);
+			// If the date is single digit then there is an extra space.
+			// Hence the spacePtr is advanced until all the spaces are consumed/
+			// This while loop is basically to handle these dates Apr 6 , or Apr 9 and not Apr 12
+				if((*spacePtr)==' ') {
+					spacePtr++;
+					strncat(transTime," ",1);
+				}
+				
 			}
 			i++;
 		}
 	}
+	free(tempStr);
 }
 
 
@@ -119,16 +121,46 @@ void printPattern()
 	printf("\n");
 }
 
+char * formatNumerics(char type, double num, char str[14])
+{
+	int temp_th, temp_hu, temp_dc;
+	
+	if(num > 99999999) {
+		if(type == '+')
+			sprintf(str,"  ?,???,???.??");
+		else
+			sprintf(str,"(?,???,???.?\?)");
+	}
+	else if(num > 99999) {
+		temp_th = (int)(num/100000);
+		temp_hu = (int)((num - (temp_th*100000))/100);
+		temp_dc = (int)((num - (temp_th*100000))-(temp_hu*100));
+		
+		if(type == '+')
+			sprintf(str,"%7d,%03d.%02d",temp_th,temp_hu,temp_dc);
+		else {
+			sprintf(str,"(%5d,%03d.%02d)",temp_th,temp_hu,temp_dc);
+		}
+	}
+	else {
+		if(type == '+')
+			sprintf(str,"%14.2f",(double)(num/100));
+		else
+			sprintf(str,"(%12.2f)",(double)(num/100));
+	}
+	return str;
+}
+
 void printObj(My402List *applnList)
 {
 	My402ListElem *ptrElem;
 	My402ApplnObj *applnObj;
 	int Balance=0;
+	char str[14];
 	int i; //This i is required for the macro PrintChar
 	ptrElem = My402ListFirst(applnList);
-	printf("\n\n\t\t **** LIST OUTPUT **** \n\n");
 	printPattern();
-	printf("|       Date      |       Description        |     Amount     |     Balance    |\n");
+	printf("|       Date      | Description              |         Amount |        Balance |\n");
 	printPattern();
 	do {
 		applnObj = (struct tagMy402ApplnObj *)ptrElem->obj;
@@ -137,17 +169,19 @@ void printObj(My402List *applnList)
 		PrintChar(24-strlen(applnObj->transDesc),' ');
 		printf(" |");
 		if(applnObj->transType == '+') {
-			printf(" %14.2f |",(double)(applnObj->transAmountCents) / 100);
+			printf(" %s |",formatNumerics('+', (double)(applnObj->transAmountCents), str));
 			Balance += applnObj->transAmountCents;
 		}
 		else {
-			printf(" (%12.2f) |",(double)(applnObj->transAmountCents) / 100);
+			printf(" %s |",formatNumerics('-', (double)(applnObj->transAmountCents), str));
 			Balance -= applnObj->transAmountCents;
 		}
 		if(Balance > 0)
-			printf(" %14.2f |\n",(double)(Balance) / 100);
+			printf(" %s |\n",formatNumerics('+', (double)(Balance), str));
 		else
-			printf(" (%12.2f) |\n",(double)(Balance) / 100);
+			printf(" %s |\n",formatNumerics('-', (double)(-1*Balance), str));
+
+
 	}while((ptrElem = My402ListNext(applnList,ptrElem))!=NULL);
 	printPattern();
 }
@@ -208,5 +242,7 @@ int main(int argc, char **argv)
 		}
 		printObj(&applnList);
 	}
+	if(fp!=stdin)
+		fclose(fp);
 	return 1;
 }
