@@ -15,7 +15,7 @@
 typedef struct tagMy402ApplnObj {
 	char transType;
 	int transAmountCents;
-	char transDesc[24];
+	char transDesc[25];
 	char transTime[15];
 	long long transTimeInt;
 }My402ApplnObj;

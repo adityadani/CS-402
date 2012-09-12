@@ -67,8 +67,8 @@ My402ApplnObj* createApplnObj (char *buf)
 		startPtr = tabPtr;
 		tabPtr = strchr(startPtr,'\t');
 		if(tabPtr == NULL) {
-			strncpy(applnObj->transDesc,startPtr,23);
-			applnObj->transDesc[23]='\0';
+			strncpy(applnObj->transDesc,startPtr,24);
+			applnObj->transDesc[24]='\0';
 			// Checking if /n character is present
 			// If present overwritting it with \0
 			newlinePtr = strchr(applnObj->transDesc,'\n');
@@ -97,9 +97,10 @@ My402ApplnObj* createApplnObj (char *buf)
 
 		case 2:
 			tempAmount = strtod(startPtr,NULL);
-			applnObj->transAmountCents = (int)(tempAmount * 100);
-			break;
-			
+			applnObj->transAmountCents = (tempAmount * 100);
+			if((double)applnObj->transAmountCents/100 != tempAmount)
+				applnObj->transAmountCents++;
+			break;			
 		}
 		i++;
 	}
@@ -137,14 +138,14 @@ char * formatNumerics(char type, double num, char str[14])
 		temp_dc = (int)((num - (temp_th*100000))-(temp_hu*100));
 		
 		if(type == '+')
-			sprintf(str,"%7d,%03d.%02d",temp_th,temp_hu,temp_dc);
+			sprintf(str,"%6d,%03d.%02d ",temp_th,temp_hu,temp_dc);
 		else {
 			sprintf(str,"(%5d,%03d.%02d)",temp_th,temp_hu,temp_dc);
 		}
 	}
 	else {
 		if(type == '+')
-			sprintf(str,"%14.2f",(double)(num/100));
+			sprintf(str,"%13.2f ",(double)(num/100));
 		else
 			sprintf(str,"(%12.2f)",(double)(num/100));
 	}
