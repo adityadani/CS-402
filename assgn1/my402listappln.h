@@ -21,7 +21,11 @@ typedef struct tagMy402ApplnObj {
 }My402ApplnObj;
 
 extern My402ApplnObj* createApplnObj (char*);
-extern void insertObj(My402List*, My402ApplnObj*);
-extern void convertTimeFormats(long long , char *);
+extern int insertObj(My402List*, My402ApplnObj*);
+extern int convertTimeFormats(long long , char *);
+extern void printPattern();
+extern char * formatNumerics(char, double, char *);
+extern void printObj(My402List *);
+
 
 #endif // _MY402LISTAPPLN_H

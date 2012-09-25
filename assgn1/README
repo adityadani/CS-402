@@ -1,0 +1,37 @@
+Author: Aditya Dani
+Prof: Bill Cheng
+
+This is a directory which contains all the 
+files required to compile and run the 
+Warmup Assgnment #1
+
+In order to create the "warmup" executable, simply run
+the command
+# make
+
+in the directory.
+
+Ensure the following files ae present in the working directory.
+
+Makefile
+my402listappln.c
+my402listappln.h
+my402list.c
+
+--------------------------------------------------------------
+
+In order to sort the transactions, the "insertion sort"
+mechanism has been used.
+
+-------------------------------------------------------------
+
+The code to parse the data from tfile into a structure has been adopted
+from Prof Cheng's slides. It has been cited appropriately.
+
+------------------------------------------------------------
+
+Please refer to inline comments in the code for inner details
+of  implementation.
+ 
+
+
