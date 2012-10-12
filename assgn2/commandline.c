@@ -84,6 +84,8 @@ void parseCommandline(int argc, char **argv)
 					ret = validate_argument(argv[i]);
 					if (ret == 0) {
 						r = strtod(argv[i],NULL);
+						if((double)(1/r) > 10)
+							r=0.1;
 						tokenarrival = (1/r)*1000000;
 					}
 					else {
@@ -138,6 +140,7 @@ void parseCommandline(int argc, char **argv)
 						
 					}
 					emulation_mode = 't';
+					fprintf(stdout, "\nEmulation Parameters: \n\ttfile: %s",argv[i]);
 					break;
 				}
 			}
@@ -148,6 +151,13 @@ void parseCommandline(int argc, char **argv)
 			}
 		}
 		
+	}
+	if(emulation_mode == 't') {
+		fprintf(stdout, "\n\tr = %f\n\tB = %d\n\tnumber_to_arrive = %d\n",r,B,num_packets);
+	}
+	else {
+		fprintf(stdout, "\nEmulation Parameters: \n\tlambda = %f",lambda);
+		fprintf(stdout, "\n\tmu = %f\n\tr = %f\n\tB = %d\n\tp = %d\n\tnumber to arrive = %d\n",mu,r,B,P,num_packets);
 	}
 
 }
