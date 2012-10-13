@@ -1,6 +1,5 @@
 #include <sys/time.h>
 #include <unistd.h>
-#include <signal.h>
 #include <math.h>
 #include "packet.h"
 
@@ -11,13 +10,6 @@ long getinstanttime()
 	return((tv.tv_sec*1000000) + tv.tv_usec);
 }
 
-void handle_ctrlc()
-{
-	PrintStat(getinstanttime());
-	fprintf(stdout, "Ctrl + C Detected!!\n");
-	ctrlc_kill = 1;
-	token_die=1;
-} 
 
 void readfileline(long *at, long *st, int *token)
 {
@@ -103,7 +95,7 @@ void *arrivalThread(void *id)
 	Packet *pkt;
 	int i;
 	long pkt_sleep, pkt_service;
-	int pkt_token,pkt_dropped=0,pkt_arrived = 0;
+	int pkt_token;
 	long sleep_time;
 	long prev_pkt_time=0, instant_time;
 	long avg_ia=0;
@@ -111,50 +103,27 @@ void *arrivalThread(void *id)
 
 	for (i=0;i<num_packets;i++) {
 
-		// If Ctrl + C is pressed stop the arrival process.
-		if (ctrlc_kill == 1) {
-			server_die=1;
-			token_die=1;
-			i--;
-			break;
-		}
 
 		getStatistics(&pkt_sleep,&pkt_service,&pkt_token,i);		
 		if(pkt_sleep > 10000000)
 			pkt_sleep = 10000000;
-		if(pkt_service > 10000000)
+		if(pkt_service > 1000000)
 			pkt_service = 10000000;
 				
 		taend=getinstanttime();
-		if(pkt_sleep > (taend - tastart)) {
-			sleep_time = pkt_sleep - (taend-tastart);
-			usleep(sleep_time);			
-		}
+		sleep_time = pkt_sleep - (taend-tastart);
+		usleep(sleep_time);
 		
-		pkt_arrived++;
 		// Creating the Packet
 		
 		pkt = (Packet *)malloc(sizeof(struct tagPacket));
-		pkt->pkt_id = i+1;
+		pkt->pkt_id = i;
 		pkt->num_tokens = pkt_token;
 		pkt->service_time = pkt_service;
 
 		pkt->sys_enter = tastart = getinstanttime();
-
-		instant_time = getinstanttime();
-		if(prev_pkt_time==0) {
-			prev_pkt_time = pkt->inter_arrival_time = (instant_time - temulation_start);
-			prev_pkt_time = instant_time;
-		}
-		else {
-			pkt->inter_arrival_time = instant_time - prev_pkt_time;
-			prev_pkt_time = instant_time;
-		}
-		
-		avg_ia += pkt->inter_arrival_time;
 		if(pkt->num_tokens > B) {
 			// Drop the packet
-			pkt_dropped++;
 			pkts_to_arrive--;
 			PrintStat(getinstanttime());
 			fprintf(stdout, "p%d arrives, Invalid token requirement, p%d Dropped!!\n", 
@@ -162,16 +131,19 @@ void *arrivalThread(void *id)
 			continue;
 		}
 		else {
+			instant_time = getinstanttime();
+			if(prev_pkt_time==0) {
+				prev_pkt_time = pkt->inter_arrival_time = (instant_time - temulation_start);
+				prev_pkt_time = instant_time;
+			}
+			else {
+				pkt->inter_arrival_time = instant_time - prev_pkt_time;
+				prev_pkt_time = instant_time;
+			}
 			PrintStat(instant_time);
+			avg_ia += pkt->inter_arrival_time;
 			fprintf(stdout, "p%d arrives, needs %d tokens, inter-arrival time = %.3fms\n",
 				pkt->pkt_id,pkt->num_tokens,(double)(pkt->inter_arrival_time)/1000);
-		}
-		
-		// If Ctrl + C is pressed stop the arrival process.
-		if (ctrlc_kill == 1) {
-			server_die=1;
-			token_die=1;
-			break;
 		}
 
 		pthread_mutex_lock(&my_mutex);
@@ -179,11 +151,11 @@ void *arrivalThread(void *id)
 			My402ListAppend(&queue1,pkt);
 			pkt->q1_enter = getinstanttime();
 			PrintStat(getinstanttime());
-			fprintf(stdout,"p%d enters Q1 -- arrival\n", pkt->pkt_id);
+			fprintf(stdout,"p%d enters Q1\n", pkt->pkt_id);
 			if(!My402ListEmpty(&queue2)) {
 				pthread_cond_signal(&queue2_cond);
 			}
-			//else {
+			else {
 				if(token_bucket >= pkt->num_tokens) {
 					elem = My402ListFirst(&queue1);
 					pkt = (Packet *)elem->obj;					
@@ -192,7 +164,7 @@ void *arrivalThread(void *id)
 					pkt->q1_exit = getinstanttime();
 					token_bucket-=pkt->num_tokens;
 					PrintStat(getinstanttime());
-					fprintf(stdout, "p%d leaves Q1, time in Q1 = %.3fms, token bucket now has %d tokens -- arrival\n", 
+					fprintf(stdout, "p%d leaves Q1, time in Q1 = %.3fms, token bucket now has %d tokens\n", 
 						pkt->pkt_id, (double)(pkt->q1_exit - pkt->q1_enter)/1000, token_bucket);
 					avg_pkt_q1 += (pkt->q1_exit - pkt->q1_enter);
 					pkts_left_q1++;
@@ -201,29 +173,29 @@ void *arrivalThread(void *id)
 					pkt->q1_exit = 0;
 					pkt->q2_enter = getinstanttime();
 					PrintStat(getinstanttime());
-					fprintf(stdout,"p%d enters Q2 -- arrival\n", pkt->pkt_id);
+					fprintf(stdout,"p%d enters Q2\n", pkt->pkt_id);
 					pthread_cond_signal(&queue2_cond);
 				}
-				//}
+			}
 		}
 		else {
 			My402ListAppend(&queue1,pkt);
 			pkt->q1_enter = getinstanttime();
 			PrintStat(getinstanttime());
-			fprintf(stdout,"p%d enters Q1 -- arrival else\n", pkt->pkt_id);
+			fprintf(stdout,"p%d enters Q1\n", pkt->pkt_id);
 		}
 		pthread_mutex_unlock(&my_mutex);
 	}
 	pthread_mutex_lock(&my_mutex);
 	pthread_cond_signal(&queue2_cond); // This can also be a false signal just to wake up server, if
 	pthread_mutex_unlock(&my_mutex);   // say last packet is dropped and there is no pkt to be queued to q2.
-	if(pkt_arrived == 0){
+	if(i==-1) {
 		avg_inter_arrival = 0;
 		pkt_drop_prob = 0;
 	}
 	else {
-		avg_inter_arrival = (double)((double)avg_ia/(double)((pkt_arrived)*1000000));
-		pkt_drop_prob = (double)(pkt_dropped)/(pkt_arrived);
+		avg_inter_arrival = (double)((double)avg_ia/(double)((i+1)*1000000));
+		pkt_drop_prob = (double)(num_packets - pkts_to_arrive)/(i+1);
 	}
 	pthread_exit(NULL);
 }
@@ -239,10 +211,6 @@ void *tokenThread(void *id)
 
 		if(token_die==1) {
 			token_drop_prob = (double)token_drop/tokencount;
-			server_die=1;
-			pthread_mutex_lock(&my_mutex);
-			pthread_cond_signal(&queue2_cond); // This can also be a false signal just to wake up server, if
-			pthread_mutex_unlock(&my_mutex);   // say last packet is dropped and there is no pkt to be queued to q2.
 			pthread_exit(NULL);
 		}
 
@@ -272,7 +240,7 @@ void *tokenThread(void *id)
 				My402ListUnlink(&queue1,elem);
 				pkt->q1_exit = getinstanttime();
 				PrintStat(getinstanttime());
-				fprintf(stdout, "p%d leaves Q1, time in Q1 = %.3fms, token bucket now has %d tokens -- token\n", 
+				fprintf(stdout, "p%d leaves Q1, time in Q1 = %.3fms, token bucket now has %d tokens\n", 
 					pkt->pkt_id, (double)(pkt->q1_exit - pkt->q1_enter)/1000, token_bucket);
 				avg_pkt_q1 += (pkt->q1_exit - pkt->q1_enter);
 				pkts_left_q1++;
@@ -280,7 +248,7 @@ void *tokenThread(void *id)
 				My402ListAppend(&queue2,pkt);
 				pkt->q2_enter = getinstanttime();
 				PrintStat(getinstanttime());
-				fprintf(stdout,"p%d enters Q2 -- token\n", pkt->pkt_id);
+				fprintf(stdout,"p%d enters Q2\n", pkt->pkt_id);
 
 				if(queue2_empty==1)
 					pthread_cond_signal(&queue2_cond);
@@ -299,8 +267,7 @@ void *serverThread(void *id)
 	Packet *pkt;
 	My402ListElem *elem;
 	int i,pkt_processed = 0;
-	long serv_start, serv_end;
-	long long avg_st = 0, avg_pkst = 0,sys_time;
+	long serv_start, serv_end, avg_st = 0, avg_pkst = 0,sys_time;
 	double sys_avg = 0, sys_avg_sq = 0;
 	double var_sys, var_sys_sq; 
 
@@ -369,8 +336,6 @@ int main(int argc, char **argv)
 	long t1=1, t2=2, t3=3;
 	pthread_t arrThread, serThread, tokThread;
 	long total_emulation_time;
-	sigset_t my_sigset;
-	struct sigaction sig_action;
 
 	// Setting to default values
 
@@ -384,15 +349,9 @@ int main(int argc, char **argv)
 	token_bucket = 0;
 	server_die = 0;
 	token_die = 0;
-	ctrlc_kill = 0;
 
 	avg_pkt_q1 = avg_pkt_q2 = avg_pkt_s = 0;
 	// Done
-
-	// Signal Masking and Setting
-	sigemptyset(&my_sigset);
-	sigaddset(&my_sigset, SIGINT);
-	pthread_sigmask(SIG_BLOCK, &my_sigset, NULL);
 
 	// Initialize Queues
 	
@@ -408,21 +367,15 @@ int main(int argc, char **argv)
 	pkts_to_arrive = num_packets;
 
 
+	pthread_create(&arrThread, NULL, arrivalThread,(void *)t1);
+	pthread_create(&tokThread, NULL, tokenThread,(void *)t2);
+	pthread_create(&serThread, NULL, serverThread, (void *)t3);
 
 	temulation_start = tastart = ttstart =  getinstanttime();
 	PrintStat(getinstanttime());
 	fprintf(stdout, "Emulation Begins\n");
 
-	pthread_create(&arrThread, NULL, arrivalThread,(void *)t1);
-	pthread_create(&tokThread, NULL, tokenThread,(void *)t2);
-	pthread_create(&serThread, NULL, serverThread, (void *)t3);
 
-
-	// Catching and Handling Ctrl + C Signal
-	
-	sig_action.sa_handler = handle_ctrlc;
-	sigaction(SIGINT, &sig_action, NULL);
-	pthread_sigmask(SIG_UNBLOCK, &my_sigset, NULL);
 
 	pthread_join(arrThread, NULL);
 	pthread_join(tokThread, NULL);
@@ -436,7 +389,7 @@ int main(int argc, char **argv)
 	fprintf(stdout,"Statistics: \n\n");
 	fprintf(stdout,"\taverage packet inter arrival time = %.08g sec\n",avg_inter_arrival);
 	fprintf(stdout,"\taverage packet service time = %.08g sec\n\n",avg_serv_time);
-	fprintf(stdout,"\taverage number of packets in Q1 = %.08g %lld %ld\n",(double)avg_pkt_q1/total_emulation_time,avg_pkt_q1, total_emulation_time);
+	fprintf(stdout,"\taverage number of packets in Q1 = %.08g\n",(double)avg_pkt_q1/total_emulation_time);
 	fprintf(stdout,"\taverage number of packets in Q2 = %.08g\n",(double)avg_pkt_q2/total_emulation_time);
 	fprintf(stdout,"\taverage number of packets at S = %.08g\n\n",(double)avg_pkt_s/total_emulation_time);
 	fprintf(stdout,"\taverage time a packet spent in the system = %.08g sec\n",avg_pkt_sys_time);

@@ -1,0 +1,33 @@
+Author: Aditya Dani
+Prof: Bill Cheng
+
+This is a directory which contains all the 
+files required to compile and run the 
+Warmup Assgnment #2
+
+In order to create the "warmup2" executable, simply run
+the command
+# make
+
+in the directory.
+
+Ensure the following files are present in the working directory.
+
+Makefile
+my402list.c
+warmup2.c
+commandline.c
+cs402.h
+packet.h
+
+--------------------------------------------------------------
+
+-------------------------------------------------------------
+
+------------------------------------------------------------
+
+Please refer to inline comments in the code for inner details
+of  implementation.
+ 
+
+
